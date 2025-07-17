@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scarica Eventi Bari - CSV</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Eventi culturali – Provincia di Bari</h1>
+  <button id="downloadCsv">Scarica CSV</button>
+
+  <script>
+    document.getElementById("downloadCsv").addEventListener("click", () => {
+      const endpoint = "https://dati.beniculturali.it/sparql";
+
+      const query = `
+        PREFIX cis: <http://dati.beniculturali.it/cis/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX clvapit: <https://w3id.org/italia/onto/CLV/>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX ti: <https://w3id.org/italia/onto/TI/>
+
+        SELECT ?evento ?inizio ?sede ?indirizzo ?comune
+        WHERE {
+          ?x a cis:CulturalEvent ;
+             rdfs:label ?evento ;
+             cis:isHostedBySite ?site .
+
+          ?site cis:siteAddress ?address .
+          ?address clvapit:hasCity/rdfs:label ?comune ;
+                   clvapit:fullAddress ?indirizzo ;
+                   clvapit:hasProvince/rdfs:label ?provincia .
+
+          ?site owl:sameAs ?lcSite .
+          ?y cis:hasSite ?lcSite ;
+             rdfs:label ?sede .
+
+          OPTIONAL {
+            ?x ti:atTime ?time .
+            ?time ti:startTime ?inizio .
+          }
+
+          FILTER(CONTAINS(LCASE(STR(?provincia)), "bari"))
+        }
+        ORDER BY ?inizio ?evento
+      `;
+
+      // Crea l’URL con query SPARQL codificata
+      const fullUrl = endpoint + "?query=" + encodeURIComponent(query) + "&format=text/csv";
+
+      // Crea link invisibile e forza il download
+      const link = document.createElement("a");
+      link.href = fullUrl;
+      link.download = "eventi_bari.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  </script>
+</body>
+</html>
